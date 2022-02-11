@@ -30,7 +30,6 @@ public class gerarLote implements AcaoRotinaJava {
 
 	AuthenticationInfo authInfo;
 	ServiceContext sctx;
-
 	BigDecimal nuNotaOrig;
 	BigDecimal nuNota = BigDecimal.ZERO;
 	BigDecimal codProdIte;
@@ -49,7 +48,9 @@ public class gerarLote implements AcaoRotinaJava {
 	BigDecimal codProdOrig;
 	BigDecimal codProd;
 	BigDecimal sequencia;
-
+	BigDecimal qtdVol;
+	
+	String volume = "";
 	FinderWrapper finde;
 	String msg = "";
 	String controleIte = "";
@@ -95,7 +96,7 @@ public class gerarLote implements AcaoRotinaJava {
 					//
 					if (adEspelho.equals("S") && statusNota.equals("A") || statusNota.equals("L")) {
 
-						ResultSet rs = nativeSql.executeQuery(" SELECT AD_ESPELHO, AD_NUNOTAESPORIG, CODEMP "
+						ResultSet rs = nativeSql.executeQuery(" SELECT AD_ESPELHO, AD_NUNOTAESPORIG, CODEMP, QTDVOL, VOLUME "
 								+ " FROM TGFCAB " + "	WHERE NUNOTA = " + nuNota);
 
 						while (rs.next()) {
@@ -104,6 +105,11 @@ public class gerarLote implements AcaoRotinaJava {
 							System.out.println("" + nuNotaOrig);
 							codEmp = rs.getBigDecimal("CODEMP");
 							System.out.println(" codEmp empresa da tela " + codEmp);
+							qtdVol = rs.getBigDecimal("QTDVOL");
+							volume = rs.getString("VOLUME");
+							
+							JapeWrapper cabDAO = JapeFactory.dao(DynamicEntityNames.CABECALHO_NOTA);
+							cabDAO.prepareToUpdateByPK(nuNotaOrig).set("QTDVOL", qtdVol).set("VOLUME", volume).update();
 
 							System.out.println("depois do result set cpfcnpj : " + nuNotaOrig);
 							
@@ -121,7 +127,7 @@ public class gerarLote implements AcaoRotinaJava {
 									return;
 							     }
 
-							String queryIte = ("SELECT " + " QTDNEG, " + " CODPROD, " + " CODLOCALORIG, "
+							String queryIte = ("SELECT " + " QTDNEG, " + " CODPROD, " + " CODLOCALORIG,"
 									+ " CODEMP as CODEMPORIG FROM TGFITE WHERE NUNOTA = " + nuNota);
 							// select para pegar os campos na ite para validar o estoque
 
@@ -139,6 +145,7 @@ public class gerarLote implements AcaoRotinaJava {
 								System.out.println("ite EMP : " + codEmpIte);
 								codProd = rsITE.getBigDecimal("CODPROD");
 								System.out.println("ite codprod filha : " + codProd);
+								
 
 								System.out.println("Entrou no else");
 								String queryCont = ("SELECT count(CONTROLE) AS CONTADOR FROM TGFITE WHERE NUNOTA = "

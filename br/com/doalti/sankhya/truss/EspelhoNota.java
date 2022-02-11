@@ -84,7 +84,14 @@ public class EspelhoNota implements AcaoRotinaJava {
 	private BigDecimal codProdIte;
 	private BigDecimal codLocalOrigIte;
 	private BigDecimal codEmpIte;
-
+	private BigDecimal qtdVol;
+	private BigDecimal codParcTransp;
+	private BigDecimal pacSedex;
+	
+	private String tipFrete = "";
+	private String observacao = "";
+	private String obsInt = "";
+	private String volume = "";
 	private String controleIte = "";
 	private String tipmov = "";
 	private String CODBAI;
@@ -195,7 +202,13 @@ public class EspelhoNota implements AcaoRotinaJava {
 				System.out.println("pass ou da declarade query");
 				JapeSession.SessionHandle hnd2 = null;
 
-				String query2 = (" SELECT NUNOTA, CODPARC, CODEMP, CODTIPOPER, CODTIPVENDA, CODNAT, CODVEND, CODCENCUS FROM TGFCAB "
+				String query2 = (" SELECT NUNOTA, CODPARC, CODEMP, CODTIPOPER, CODTIPVENDA, CODNAT, CODVEND, CODCENCUS, QTDVOL, "
+						+ "VOLUME, "
+						+ "CODPARCTRANSP, "
+						+ "AD_OBSINT, "
+						+ "OBSERVACAO, "
+						+ "AD_PACSEDEX, "
+						+ "TIPFRETE FROM TGFCAB "
 						+ "WHERE " + "NUNOTA = " + nuNotaOld);
 
 				System.out.println("sysout String Rs : " + query2);
@@ -224,6 +237,15 @@ public class EspelhoNota implements AcaoRotinaJava {
 					System.out.println("sysout linha 605 " + codParc);
 					codCencusOrig = rs.getBigDecimal("CODCENCUS");
 					System.out.println("sysout centro de resultado " + codCencusOrig);
+					qtdVol = rs.getBigDecimal("QTDVOL");
+					System.out.println("qtdvol " + qtdVol);
+					volume = rs.getString("VOLUME");
+					codParcTransp = rs.getBigDecimal("CODPARCTRANSP");
+					obsInt = rs.getString("AD_OBSINT");
+					observacao = rs.getString("OBSERVACAO");
+					pacSedex = rs.getBigDecimal("AD_PACSEDEX");
+					tipFrete = rs.getString("TIPFRETE");
+					
 					String msg = "";
 
 					String codVol = "";
@@ -288,6 +310,14 @@ public class EspelhoNota implements AcaoRotinaJava {
 							cabVO.setProperty("CODEMPNEGOC", this.parcDestino);
 							cabVO.setProperty("DTALTER", dataHoraAtual);
 							cabVO.setProperty("AD_NUNOTAESPORIG", this.nuNotaOrig);
+							cabVO.setProperty("QTDVOL", this.qtdVol);
+							cabVO.setProperty("VOLUME", this.volume );
+							cabVO.setProperty("CODPARCTRANSP", this.codParcTransp);
+							cabVO.setProperty("AD_OBSINT", this.obsInt);
+							cabVO.setProperty("OBSERVACAO", this.observacao);
+							cabVO.setProperty("TIPFRETE", this.tipFrete);
+							cabVO.setProperty("AD_PACSEDEX", this.pacSedex);
+							
 							
 							System.out.println("passou do cabVO");
 							CACHelper cacHelper = new CACHelper();
