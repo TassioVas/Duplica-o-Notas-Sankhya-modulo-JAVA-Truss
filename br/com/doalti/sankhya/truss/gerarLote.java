@@ -93,7 +93,7 @@ public class gerarLote implements AcaoRotinaJava {
 					adEspelho = result.getString("AD_ESPELHO");
 					System.out.println("Ad espelho " + adEspelho);
 					statusNota = result.getString("STATUSNOTA");
-
+					//
 					if (adEspelho.equals("S") && statusNota.equals("A") || statusNota.equals("L")) {
 
 						ResultSet rs = nativeSql
@@ -114,7 +114,7 @@ public class gerarLote implements AcaoRotinaJava {
 
 							System.out.println("depois do result set cpfcnpj : " + nuNotaOrig);
 
-							String queryIte = ("SELECT " + " QTDNEG, SEQUENCIA , " + " CODPROD,  " + " CODLOCALORIG,"
+							String queryIte = ("SELECT " + " QTDNEG, " + " CODPROD, " + " CODLOCALORIG,"
 									+ " CODEMP as CODEMPORIG FROM TGFITE WHERE NUNOTA = " + nuNota);
 							// select para pegar os campos na ite para validar o estoque
 
@@ -131,22 +131,135 @@ public class gerarLote implements AcaoRotinaJava {
 								codEmpIte = rsITE.getBigDecimal("CODEMPORIG");
 								System.out.println("ite EMP : " + codEmpIte);
 								codProd = rsITE.getBigDecimal("CODPROD");
-								sequencia = rsITE.getBigDecimal("SEQUENCIA");
 								System.out.println("ite codprod filha : " + codProd);
 
-								JapeWrapper iteDAO = JapeFactory.dao(DynamicEntityNames.ITEM_NOTA);
-								iteDAO.prepareToUpdateByPK(nuNotaOrig, sequencia).set("CODPROD", codProd)
-										.set("QTDNEG", qtdNeg).set("CODLOCALORIG", codLocalOrigIte)
-										.set("CONTROLE", controleIte).update();
+								String queryEst = ("SELECT COUNT(*) AS CONTADOR FROM TGFEST " + " WHERE "
+										+ " CODPROD = " + codProd + " AND CONTROLE = '" + controleIte + "'"
+										+ " AND CODLOCAL = " + codLocalOrigIte + " AND CODEMP = " + codEmp);
+								System.out.println("sysout String Rs : " + queryEst);
+								ResultSet rsEst = nativeSql.executeQuery(queryEst);
+								System.out.println("antes do if a top destino : " + topDestino);
 
-							
-								ctx.setMensagemRetorno("Lote gerado com sucesso nota Pai :" + nuNotaOrig);
-							
+								while (rsEst.next()) {
+									count = rsEst.getBigDecimal("CONTADOR");
+									if (count.equals(0)) {
+										ctx.setMensagemRetorno(" Estque insuficiente! ");
+										System.out.println("passou aqui no if do estoque");
+										return;
+									}
+
+									System.out.println("Entrou no else");
+									String queryCont = ("SELECT count(CONTROLE) AS CONTADOR FROM TGFITE WHERE NUNOTA = "
+											+ this.nuNotaOrig);
+
+									ResultSet rsCont = nativeSql.executeQuery(queryCont);
+
+									while (rsCont.next()) {
+										// count = rsCont.getBigDecimal("CONTADOR");
+										if (this.controleIte != null || rsCont.getInt("CONTADOR") > 0) {
+											System.out.println("Sysout entrou no contador");
+
+											String queryItem = ("SELECT CODPROD, SEQUENCIA FROM TGFITE WHERE NUNOTA = "
+													+ this.nuNotaOrig);
+
+											ResultSet rsItem = nativeSql.executeQuery(queryItem);
+
+											while (rsItem.next()) {
+												codProdOrig = rsItem.getBigDecimal("CODPROD");
+												sequencia = rsItem.getBigDecimal("SEQUENCIA");
+												// while (codProdOrig == codProd) {
+												System.out.println("Sysout entrou no while");
+
+												JapeWrapper dlt = JapeFactory.dao(DynamicEntityNames.ITEM_NOTA);
+												dlt.delete(nuNotaOrig, sequencia);
+
+												this.sctx = new ServiceContext(null);
+												authInfo = new AuthenticationInfo("SUP", BigDecimal.ZERO,
+														BigDecimal.ZERO, new Integer(2147483647));
+												this.sctx.setAutentication(authInfo);
+												this.sctx.putHttpSessionAttribute("usuario_logado",
+														authInfo.getUserID());
+												JapeSessionContext.putProperty("usuario_logado", authInfo.getUserID());
+												this.sctx.setAttribute("usuario_logado", authInfo.getUserID());
+												this.sctx.makeCurrent();
+
+												System.out.println("auth : " + authInfo);
+
+												try {
+													dwfFacade = EntityFacadeFactory.getDWFFacade();
+													finde = new FinderWrapper(" ItemNota", " NUNOTA = " + nuNota);
+													System.out.println("SYSOUT nunota origem incluir item  " + nuNota);
+													Collection<DynamicVO> itemAtualITE = dwfFacade
+															.findByDynamicFinderAsVO(finde);
+													BigDecimal codLocal = BigDecimal.ZERO;
+													for (DynamicVO item1 : itemAtualITE) {
+														try {
+															Collection<PrePersistEntityState> itensNota = new ArrayList<>();
+															DynamicVO itemVO = (DynamicVO) dwfFacade
+																	.getDefaultValueObjectInstance("ItemNota");
+															itemVO.setProperty("SEQUENCIA",
+																	item1.asBigDecimal("SEQUENCIA"));
+															System.out.println("Depois do sequenc");
+															itemVO.setProperty("CODPROD",
+																	item1.asBigDecimal("CODPROD"));
+															System.out.println("depois do codprod");
+															itemVO.setProperty("CODVOL", item1.asString("CODVOL"));
+															System.out.println("depois do codvol");
+															itemVO.setProperty("CODLOCALORIG",
+																	item1.asBigDecimal("CODLOCALORIG"));
+															System.out.println("depois do qtdneg");
+															itemVO.setProperty("QTDNEG", item1.asBigDecimal("QTDNEG"));
+															System.out.println("Antes do vlrunit");
+															itemVO.setProperty("VLRUNIT",
+																	item1.asBigDecimal("VLRUNIT"));
+															System.out.println("Antes do c");
+															// itemVO.setProperty("CONTROLE",
+															// item1.asString("CONTROLE"));
+															itemVO.setProperty("CONTROLE", item1.asString("CONTROLE"));
+
+															System.out.println("Antes do Persist");
+															PrePersistEntityState itePreState = PrePersistEntityState
+																	.build(dwfFacade, "ItemNota", itemVO);
+															System.out.println("Antes do Collection ITE");
+															itensNota.add(itePreState);
+															System.out.println("nunota inclusao " + nuNotaOrig);
+															cacHelper.incluirAlterarItem(nuNotaOrig, authInfo,
+																	itensNota, true);
+
+														} catch (Exception e) {
+															e.printStackTrace();
+															msg = "Erro na inclusao do item " + e.getMessage();
+															System.out.println(msg);
+															ctx.setMensagemRetorno(e.getMessage());
+														}
+
+														/*
+														 * JapeWrapper iteDAO =
+														 * JapeFactory.dao(DynamicEntityNames.ITEM_NOTA);
+														 * iteDAO.prepareToUpdateByPK(nuNotaOrig,
+														 * sequencia).set("CONTROLE", this.controleIte) .set("QTDNEG",
+														 * this.qtdNeg).update();
+														 */
+														ctx.setMensagemRetorno(
+																"Lote gerado com sucesso nota Pai :" + nuNotaOrig);
+													}
+												} catch (Exception e) {
+													e.printStackTrace();
+													msg = "Erro na inclusao do item " + e.getMessage();
+													System.out.println(msg);
+													ctx.setMensagemRetorno(e.getMessage());
+												}
+											}
+										} else {
+											ctx.setMensagemRetorno("pedido ainda nao aprovado, ou incluido o lote.");
+										}
+									}
+								}
 							}
 						}
-
 					} else {
-						ctx.setMensagemRetorno("pedido ainda nao aprovado, ou incluido o lote.");
+						ctx.setMensagemRetorno(
+								"Não existe pedido espelho " + "para o documento selecionado!\n Status nao aprovado!");
 					}
 				}
 			}
